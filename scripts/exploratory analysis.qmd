@@ -11,11 +11,15 @@ Here is our final dataset created from last week
 
 `combo_df`
 
-First, we will load the `tidyverse and dplyr` package to aid in our exploratory analysis
+First, we will load the `tidyverse, dplyr and here` package to aid in our exploratory analysis and add our dataset
 
 ```{r}
+
 library(tidyverse)
 library(dplyr)
+library(here)
+combo_df<- read.csv(here("final_conflict.csv"))
+combo_df<- select(combo_df, !X.1)
 ```
 
 Lets start by looking at head and tail of dataset
@@ -34,14 +38,14 @@ summary_df <- summary(combo_df)
 summary(combo_df)
 ```
 
-We can also summarize by country or year (warning: large data output)
+We can also summarize by country or year (warning: large data output). Given this will produce many stats, we only printed the head results
 
 ```{r}
 summary_country <- by(combo_df, combo_df$ISO, summary)
-summary_country
+head(summary_country)
 
 summary_year <- by(combo_df, combo_df$Year, summary) 
-summary_year
+head(summary_year)
 ```
 
 Note that we have significant amounts of missing data (NA) for a number of variables in the dataset.
@@ -106,47 +110,69 @@ We can look at year and binary conflict variable.
  mosaicplot(table(combo_df$Year, combo_df$bin_conflict), color = TRUE, xlab = "Year", ylab = "Presence of Conflict in country")
 ```
 
-We can visualize the spread of data using histograms for our continuous variables #Lets look at total droughts, total earthquakes, total battle related death, gdp100, popdens, male_edu, temp, rainfall1000, maternal.mortality, infant.mortality, neonatal.mortality, and under 5 mortality
+We can visualize the spread of data using histograms for our continuous variables#Lets look at total droughts, total earthquakes, total battle related death, gdp100, popdens, male_edu, temp, rainfall1000, maternal.mortality, infant.mortality, neonatal.mortality, and under 5 mortality
 
 ```{r}
-num_combo_df <- sapply(combo_df, as.numeric) 
 
-for (i in c(3:5, 9, 12, 15:17, 19:22)) { hist(num_combo_df[, i], main = paste("Histogram of", names(combo_df[,i])), col = "lightblue") }
+num_combo_df <- sapply(remove_na[,c(3:5, 9, 12, 15:17, 19:22)], as.numeric)
+num_combo_df <- as.data.frame((num_combo_df))
+for (i in 1:12) {
+  print(ggplot(data = num_combo_df, aes(x = num_combo_df[, i])) +
+    geom_histogram() + theme_minimal() + xlab(names(num_combo_df[i])))
+}
 ```
+
+
+
 
 Lets use a bar graft to examine the binary variable of conflict for all countries and years included
 
 ```{r}
-ggplot(data = combo_df) + geom_bar(mapping = aes(x = bin_conflict))
+ggplot(data = combo_df) + 
+  geom_bar(mapping = aes(x = bin_conflict))
 ```
 
 Lets plot gdp100 by conflict using ggplot
 
 ```{r}
-ggplot(data = combo_df) + geom_point(mapping = aes(x = gdp1000, y = bin_conflict))
+ggplot(data = mice_est) + 
+  geom_point(mapping = aes(x = gdp1000, y = bin_conflict))
 ```
 
 Lets make a comparative histogram to see how bins of gdp compare in those with conflict and those without.
 
 ```{r}
- ggplot(data = combo_df, aes(x = gdp1000, group = bin_conflict, fill = bin_conflict )) + geom_histogram(position='dodge')+theme_classic()
+ ggplot(data = mice_est, aes(x = gdp1000, group = bin_conflict, fill = bin_conflict )) + 
+  geom_histogram(position='dodge', binwidth = 5) +
+  theme_classic()
 ```
 
 Lets further examine this relationship by creating a new variable which divides data into quartiles based on male education
 
 ```{r}
-combo_df$male_edu_qt <- ntile(combo_df$male_edu, 4) 
-ggplot(data = combo_df, aes(x = gdp1000, group = bin_conflict, fill = bin_conflict )) + geom_histogram(position='dodge')+theme_classic()+facet_wrap(vars(male_edu_qt))
+new_combo_df <- mice_est
+new_combo_df$male_edu_qt <- ntile(new_combo_df$male_edu, 4)
+ggplot(data = new_combo_df, aes(x = gdp1000, group = bin_conflict, fill = bin_conflict )) +
+  geom_histogram(position='dodge', binwidth = 5) +
+  theme_classic() +
+  facet_wrap(vars(male_edu_qt))
+
 ```
 
 Let us examine the trend in maternal mortality over the years and stratify into separate plots based on conflict
 
 ```{r}
-ggplot(data = combo_df, aes(x = Year, y = Maternal.Mortality)) + geom_point() + geom_smooth() + facet_wrap(vars(bin_conflict))
+ggplot(data = remove_na, aes(x = Year, y = Maternal.Mortality)) + 
+  geom_point() + 
+  geom_smooth() + 
+  facet_wrap(vars(bin_conflict))
 ```
 
 Lets do the same plot, but use our dataset with multiply imputed missing variables
 
 ```{r}
-ggplot(data = mice_est, aes(x = Year, y = Maternal.Mortality)) + geom_point() + geom_smooth() + facet_wrap(vars(bin_conflict))
+ggplot(data = mice_est, aes(x = Year, y = Maternal.Mortality)) + 
+  geom_point() + 
+  geom_smooth() + 
+  facet_wrap(vars(bin_conflict))
 ```
